@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "146846686215",
+    "firebase_url": "https://projet-4536c-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "projet-4536c",
+    "storage_bucket": "projet-4536c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:146846686215:android:ee9a19f28fd578778a5ea2",
+        "android_client_info": {
+          "package_name": "com.example.contacts_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkGPQofl9Z8tYM7-ptFcQfz5dtqx4bekM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
