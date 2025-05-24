@@ -1,73 +1,114 @@
-import 'package:firebase_database/firebase_database.dart';
+// lib/views/home_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../controllers/contact_controller.dart';
 
 class HomePage extends StatelessWidget {
-  final ContactController _contactController = ContactController();
-  final user = FirebaseAuth.instance.currentUser!;
-  String _sanitizeEmail(String email) => email.replaceAll('.', ',');
+  HomePage({Key? key}) : super(key: key);
 
-  HomePage({super.key});
+  final user = FirebaseAuth.instance.currentUser!;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Contacts Backup')),
+      appBar: AppBar(
+        title: const Text('Contacts Backup'),
+        centerTitle: true,
+        elevation: 2,
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Logged in as: ${user.email}', textAlign: TextAlign.center),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => _backupContacts(context),
-              child: const Text('Backup Contacts'),
-            ),
-            ElevatedButton(
-              onPressed: () => _restoreContacts(context),
-              child: const Text('Restore Contacts'),
-            ),
-            ElevatedButton(
-            onPressed: () async {
-              final snapshot = await FirebaseDatabase.instance
-                  .ref('users/${_sanitizeEmail(user.email!)}/contacts')
-                  .get();
-              debugPrint(snapshot.value.toString());
-            },
-            child: Text('Debug: Print Firebase Data'),
-          ),
-            // Add similar buttons for SMS and Favorites
+            _buildUserCard(),
+            const SizedBox(height: 32),
+            _buildActionGrid(context),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _backupContacts(BuildContext context) async {
-    try {
-      await _contactController.backupContacts();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Contacts backed up successfully!'))
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}'))
-      );
-    }
-  }
-  Future<void> _restoreContacts(BuildContext context) async {
-  try {
-    final contacts = await _contactController.restoreContacts();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Restored ${contacts.length} contacts'))
-    );
-    // Optionally navigate to contacts view
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Restore failed: ${e.toString()}'))
+  Widget _buildUserCard() {
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.blue.shade100,
+          child: const Icon(Icons.person, color: Colors.blue),
+        ),
+        title: Text(
+          user.email ?? 'Unknown user',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: const Text('Welcome back!'),
+      ),
     );
   }
-}
+
+  Widget _buildActionGrid(BuildContext context) {
+    return Expanded(
+      child: GridView.count(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        children: [
+          _buildActionCard(
+            icon: Icons.upload,
+            label: 'Selective Backup',
+            onTap: () => Navigator.pushNamed(context, '/backup'),
+          ),
+          _buildActionCard(
+            icon: Icons.download,
+            label: 'Selective Restore',
+            onTap: () => Navigator.pushNamed(context, '/restore'),
+          ),
+          _buildActionCard(
+            icon: Icons.sms,
+            label: 'Backup SMS',
+            onTap: () => Navigator.pushNamed(context, '/sms_backup'),
+          ),
+          _buildActionCard(
+            icon: Icons.sms_failed,
+            label: 'Restore SMS',
+            onTap: () => Navigator.pushNamed(context, '/sms_restore'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionCard({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 1.5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 36, color: Colors.blue),
+              const SizedBox(height: 12),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

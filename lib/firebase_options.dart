@@ -41,53 +41,58 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAhAcmk8LN27tVzhAYhTkQNVD2H35jdGcE',
-    appId: '1:146846686215:web:73660e8fc207599f8a5ea2',
-    messagingSenderId: '146846686215',
-    projectId: 'projet-4536c',
-    authDomain: 'projet-4536c.firebaseapp.com',
-    databaseURL: 'https://projet-4536c-default-rtdb.europe-west1.firebasedatabase.app',
-    storageBucket: 'projet-4536c.firebasestorage.app',
-    measurementId: 'G-ENBY3K542X',
+    apiKey: 'AIzaSyBuerlkbL_gFGJZX6ep1LhnvLP0_LZ_4Rk',
+    appId: '1:1078313432708:web:48177a9b9e1c7524d834d1',
+    messagingSenderId: '1078313432708',
+    projectId: 'contacts-app-27838',
+    authDomain: 'contacts-app-27838.firebaseapp.com',
+    databaseURL: 'https://contacts-app-27838-default-rtdb.firebaseio.com',
+    storageBucket: 'contacts-app-27838.firebasestorage.app',
+    measurementId: 'G-ZHT38461CM',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAkGPQofl9Z8tYM7-ptFcQfz5dtqx4bekM',
-    appId: '1:146846686215:android:ee9a19f28fd578778a5ea2',
-    messagingSenderId: '146846686215',
-    projectId: 'projet-4536c',
-    databaseURL: 'https://projet-4536c-default-rtdb.europe-west1.firebasedatabase.app',
-    storageBucket: 'projet-4536c.firebasestorage.app',
+    apiKey: 'AIzaSyCSwFZxbPMT1W0Ut2v83saTyqI3FXafTO8',
+    appId: '1:1078313432708:android:ffa02f59b74621b9d834d1',
+    messagingSenderId: '1078313432708',
+    projectId: 'contacts-app-27838',
+    databaseURL: 'https://contacts-app-27838-default-rtdb.firebaseio.com',
+    storageBucket: 'contacts-app-27838.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAmrlCpl7O30IDgZ-KXSefw0qVCSPpXg_4',
-    appId: '1:146846686215:ios:4cd495e3d2a772538a5ea2',
-    messagingSenderId: '146846686215',
-    projectId: 'projet-4536c',
-    databaseURL: 'https://projet-4536c-default-rtdb.europe-west1.firebasedatabase.app',
-    storageBucket: 'projet-4536c.firebasestorage.app',
+    apiKey: 'AIzaSyD86BP0xvydnpRW50z-SPwFjKfwoDiQD98',
+    appId: '1:1078313432708:ios:836ecf2b71bcc7f3d834d1',
+    messagingSenderId: '1078313432708',
+    projectId: 'contacts-app-27838',
+    databaseURL: 'https://contacts-app-27838-default-rtdb.firebaseio.com',
+    storageBucket: 'contacts-app-27838.firebasestorage.app',
+    androidClientId: '1078313432708-g8qic0qm88no0ekb2nlp5m2d05bm2mpj.apps.googleusercontent.com',
+    iosClientId: '1078313432708-ej387h0d4242j9b9kpc22jigcf40hki3.apps.googleusercontent.com',
     iosBundleId: 'com.example.contactsApp',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyAmrlCpl7O30IDgZ-KXSefw0qVCSPpXg_4',
-    appId: '1:146846686215:ios:4cd495e3d2a772538a5ea2',
-    messagingSenderId: '146846686215',
-    projectId: 'projet-4536c',
-    databaseURL: 'https://projet-4536c-default-rtdb.europe-west1.firebasedatabase.app',
-    storageBucket: 'projet-4536c.firebasestorage.app',
+    apiKey: 'AIzaSyD86BP0xvydnpRW50z-SPwFjKfwoDiQD98',
+    appId: '1:1078313432708:ios:836ecf2b71bcc7f3d834d1',
+    messagingSenderId: '1078313432708',
+    projectId: 'contacts-app-27838',
+    databaseURL: 'https://contacts-app-27838-default-rtdb.firebaseio.com',
+    storageBucket: 'contacts-app-27838.firebasestorage.app',
+    androidClientId: '1078313432708-g8qic0qm88no0ekb2nlp5m2d05bm2mpj.apps.googleusercontent.com',
+    iosClientId: '1078313432708-ej387h0d4242j9b9kpc22jigcf40hki3.apps.googleusercontent.com',
     iosBundleId: 'com.example.contactsApp',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAhAcmk8LN27tVzhAYhTkQNVD2H35jdGcE',
-    appId: '1:146846686215:web:024dd0d3c27bbae48a5ea2',
-    messagingSenderId: '146846686215',
-    projectId: 'projet-4536c',
-    authDomain: 'projet-4536c.firebaseapp.com',
-    databaseURL: 'https://projet-4536c-default-rtdb.europe-west1.firebasedatabase.app',
-    storageBucket: 'projet-4536c.firebasestorage.app',
-    measurementId: 'G-BDVZ66J9VL',
+    apiKey: 'AIzaSyBuerlkbL_gFGJZX6ep1LhnvLP0_LZ_4Rk',
+    appId: '1:1078313432708:web:c2ec47f871820667d834d1',
+    messagingSenderId: '1078313432708',
+    projectId: 'contacts-app-27838',
+    authDomain: 'contacts-app-27838.firebaseapp.com',
+    databaseURL: 'https://contacts-app-27838-default-rtdb.firebaseio.com',
+    storageBucket: 'contacts-app-27838.firebasestorage.app',
+    measurementId: 'G-10NF26YNZZ',
   );
+
 }

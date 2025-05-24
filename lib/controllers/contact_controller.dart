@@ -1,58 +1,74 @@
-// lib/controllers/contact_controller.dart
-
 import 'dart:convert';
-
 import 'package:flutter_contacts/flutter_contacts.dart';
-import 'package:contacts_app/models/contact_model.dart';
-import 'package:contacts_app/controllers/firebase_service.dart';
+import '../models/contact_model.dart';
+import 'firebase_service.dart';
 
 class ContactController {
   final FirebaseService _firebaseService = FirebaseService();
 
+  /// Fetch all device contacts
   Future<List<ContactModel>> getDeviceContacts() async {
-    // Demande de permission
     if (!await FlutterContacts.requestPermission()) {
       throw Exception('Contacts permission denied');
     }
-
-    // Récupère tous les contacts avec propriétés et photos
-    final List<Contact> rawContacts = await FlutterContacts.getContacts(
+    final raw = await FlutterContacts.getContacts(
       withProperties: true,
       withPhoto: true,
     );
-
-    return rawContacts.map((c) {
-      return ContactModel(
-        id: c.id,
-        name: c.displayName,
-        photo:
-            (c.photo != null && c.photo!.isNotEmpty)
-                ? base64Encode(c.photo!)
-                : null,
-        phones:
-            c.phones.map((p) => p.number).where((s) => s.isNotEmpty).toList() ??
-            [],
-        emails:
-            c.emails
-                .map((e) => e.address)
-                .where((s) => s.isNotEmpty)
-                .toList() ??
-            [],
-        createdAt: DateTime.now(),
-      );
-    }).toList();
+    return raw.map((c) => ContactModel.fromEntity(c)).toList();
   }
 
-  Future<void> backupContacts() async {
-    final contacts = await getDeviceContacts();
+  /// Backup (save or update) selected contacts to Firebase
+  Future<void> backupSelected(List<ContactModel> contacts) async {
+    if (contacts.isEmpty) return;
     await _firebaseService.saveContacts(contacts);
   }
 
+  /// Convenience: Backup *all* device contacts
+  Future<void> backupContacts() async {
+    final all = await getDeviceContacts();
+    await backupSelected(all);
+  }
+
+  /// Fetch contacts from Firebase
+  Future<List<ContactModel>> getBackupContacts() async {
+    return await _firebaseService.getContacts();
+  }
+
+  /// Convenience: Fetch & restore all backed-up contacts into device
   Future<List<ContactModel>> restoreContacts() async {
-    final contacts = await _firebaseService.getContacts();
-    if (contacts.isEmpty) {
-      throw Exception('No contacts found in backup');
+    final backups = await getBackupContacts();
+    for (final c in backups) {
+      final newContact =
+          Contact()
+            ..name.first = c.firstName
+            ..name.last = c.lastName
+            ..phones = c.phones.map((p) => Phone(p)).toList()
+            ..emails = c.emails.map((e) => Email(e)).toList();
+      if (c.photo != null) {
+        newContact.photo = base64Decode(c.photo!);
+      }
+      await newContact.insert();
     }
-    return contacts;
+    return backups;
+  }
+
+  /// Restore only selected contacts (used by the selective UI)
+  Future<void> restoreSelected(List<ContactModel> contacts) async {
+    if (!await FlutterContacts.requestPermission()) {
+      throw Exception('Contacts permission denied');
+    }
+    for (final c in contacts) {
+      final newContact =
+          Contact()
+            ..name.first = c.firstName
+            ..name.last = c.lastName
+            ..phones = c.phones.map((p) => Phone(p)).toList()
+            ..emails = c.emails.map((e) => Email(e)).toList();
+      if (c.photo != null) {
+        newContact.photo = base64Decode(c.photo!);
+      }
+      await newContact.insert();
+    }
   }
 }
