@@ -23,25 +23,61 @@ class DatabaseHelper {
       version: 1,
       onCreate: (db, version) async {
         await db.execute('''
-          CREATE TABLE favorites (
-            contactId TEXT PRIMARY KEY,
-            smsCount INTEGER,
-            callCount INTEGER,
-            lastUpdated TEXT
-          )
-        ''');
+  CREATE TABLE favorites (
+    contactId TEXT PRIMARY KEY,
+    name TEXT,
+    number TEXT,
+    smsCount INTEGER,
+    callCount INTEGER,
+    lastUpdated INTEGER,
+    manuelle INTEGER
+  )
+''');
       },
     );
+  }
+
+  Future<DateTime?> getLastAutoUpdateTime() async {
+    final db = await database;
+    final result = await db.rawQuery('''
+    SELECT MAX(lastUpdated) as lastAutoUpdate FROM favorites WHERE manuelle = 0
+  ''');
+    if (result.isNotEmpty && result.first['lastAutoUpdate'] != null) {
+      return DateTime.fromMillisecondsSinceEpoch(
+        result.first['lastAutoUpdate'] as int,
+      );
+    }
+    return null;
   }
 
   // Exemple d'insertion ou mise à jour
   Future<void> insertOrUpdateFavorite(FavoriteModel fav) async {
     final db = await database;
-    await db.insert(
+
+    // Cherche si le favori existe déjà
+    final existing = await db.query(
       'favorites',
-      fav.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      where: 'contactId = ?',
+      whereArgs: [fav.contactId],
     );
+
+    if (existing.isNotEmpty) {
+      final current = FavoriteModel.fromMap(existing.first);
+
+      // Compare l'existant avec le nouveau
+      if (!current.isSameAs(fav)) {
+        await db.delete(
+          'favorites',
+          where: 'contactId = ?',
+          whereArgs: [fav.contactId],
+        );
+        await db.insert('favorites', fav.toMap());
+      }
+      // Sinon, ne rien faire (identique)
+    } else {
+      // Nouveau favori
+      await db.insert('favorites', fav.toMap());
+    }
   }
 
   // Récupérer tous les favoris
@@ -62,5 +98,15 @@ class DatabaseHelper {
       where: 'contactId = ?',
       whereArgs: [contactId],
     );
+  }
+
+  Future<void> debugPrintFavorites() async {
+    final db = await database;
+    final result = await db.query('favorites');
+
+    print('--- FICHES FAVORIS DANS LA BD ---');
+    for (final row in result) {
+      print(row);
+    }
   }
 }

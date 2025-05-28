@@ -1,6 +1,8 @@
+import 'package:contacts_app/views/contacts_page.dart';
 import 'package:contacts_app/views/favorites_page.dart';
 import 'package:contacts_app/views/sign_up_page.dart';
 import 'package:contacts_app/views/sms_backup_page.dart';
+import 'package:contacts_app/views/sms_page.dart';
 import 'package:contacts_app/views/sms_restore_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -43,7 +45,9 @@ class MyApp extends StatelessWidget {
         '/restore': (context) => const RestorePage(),
         '/sms_backup': (context) => const SmsBackupPage(),
         '/sms_restore': (context) => const SmsRestorePage(),
-        '/favoritesPage': (context) => const FavoritesPage(), // <-- ajouter ici
+        '/favorites': (context) => const FavoritesPage(),
+        '/contacts': (context) => const ContactsPage(), // <-- nouvelle route
+        '/sms': (context) => const SmsPage(),
       },
     );
   }

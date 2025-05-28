@@ -55,29 +55,19 @@ class HomePage extends StatelessWidget {
         mainAxisSpacing: 16,
         children: [
           _buildActionCard(
-            icon: Icons.upload,
-            label: 'Selective Backup',
-            onTap: () => Navigator.pushNamed(context, '/backup'),
-          ),
-          _buildActionCard(
-            icon: Icons.download,
-            label: 'Selective Restore',
-            onTap: () => Navigator.pushNamed(context, '/restore'),
+            icon: Icons.contacts,
+            label: 'Voir Contacts',
+            onTap: () => Navigator.pushNamed(context, '/contacts'),
           ),
           _buildActionCard(
             icon: Icons.sms,
-            label: 'Backup SMS',
-            onTap: () => Navigator.pushNamed(context, '/sms_backup'),
-          ),
-          _buildActionCard(
-            icon: Icons.sms_failed,
-            label: 'Restore SMS',
-            onTap: () => Navigator.pushNamed(context, '/sms_restore'),
+            label: 'Voir SMS',
+            onTap: () => Navigator.pushNamed(context, '/sms'),
           ),
           _buildActionCard(
             icon: Icons.favorite,
             label: 'Favorites',
-            onTap: () => Navigator.pushNamed(context, '/favoritesPage'),
+            onTap: () => Navigator.pushNamed(context, '/favorites'),
           ),
         ],
       ),
