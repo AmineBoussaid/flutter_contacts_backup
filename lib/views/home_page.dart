@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class HomePage extends StatelessWidget {
-  HomePage({Key? key}) : super(key: key);
+  HomePage({super.key});
 
   final user = FirebaseAuth.instance.currentUser!;
 
@@ -73,6 +73,11 @@ class HomePage extends StatelessWidget {
             icon: Icons.sms_failed,
             label: 'Restore SMS',
             onTap: () => Navigator.pushNamed(context, '/sms_restore'),
+          ),
+          _buildActionCard(
+            icon: Icons.favorite,
+            label: 'Favorites',
+            onTap: () => Navigator.pushNamed(context, '/favoritesPage'),
           ),
         ],
       ),

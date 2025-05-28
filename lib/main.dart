@@ -1,3 +1,4 @@
+import 'package:contacts_app/views/favorites_page.dart';
 import 'package:contacts_app/views/sign_up_page.dart';
 import 'package:contacts_app/views/sms_backup_page.dart';
 import 'package:contacts_app/views/sms_restore_page.dart';
@@ -42,6 +43,7 @@ class MyApp extends StatelessWidget {
         '/restore': (context) => const RestorePage(),
         '/sms_backup': (context) => const SmsBackupPage(),
         '/sms_restore': (context) => const SmsRestorePage(),
+        '/favoritesPage': (context) => const FavoritesPage(), // <-- ajouter ici
       },
     );
   }

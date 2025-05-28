@@ -129,8 +129,9 @@ class SmsController {
               .where((m) => m.address.isNotEmpty && m.body.isNotEmpty)
               .toList();
 
-      if (validMessages.isEmpty)
+      if (validMessages.isEmpty) {
         throw Exception('No valid messages to restore');
+      }
 
       for (var message in validMessages) {
         try {

@@ -3,7 +3,7 @@ import 'package:contacts_app/controllers/contact_controller.dart';
 import 'package:contacts_app/models/contact_model.dart';
 
 class BackupPage extends StatefulWidget {
-  const BackupPage({Key? key}) : super(key: key);
+  const BackupPage({super.key});
 
   @override
   State<BackupPage> createState() => _BackupPageState();
@@ -26,9 +26,8 @@ class _BackupPageState extends State<BackupPage> {
   }
 
   void _onBackup() async {
-    final selectedContacts = _contacts
-        .where((c) => _selected.contains(c.id))
-        .toList();
+    final selectedContacts =
+        _contacts.where((c) => _selected.contains(c.id)).toList();
     await _controller.backupSelected(selectedContacts);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Backed up ${selectedContacts.length} contacts')),
@@ -49,8 +48,11 @@ class _BackupPageState extends State<BackupPage> {
             value: _selected.contains(c.id),
             onChanged: (v) {
               setState(() {
-                if (v == true) _selected.add(c.id);
-                else _selected.remove(c.id);
+                if (v == true) {
+                  _selected.add(c.id);
+                } else {
+                  _selected.remove(c.id);
+                }
               });
             },
           );
