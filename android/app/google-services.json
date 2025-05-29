@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1078313432708",
+    "firebase_url": "https://contacts-app-27838-default-rtdb.firebaseio.com",
+    "project_id": "contacts-app-27838",
+    "storage_bucket": "contacts-app-27838.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1078313432708:android:ffa02f59b74621b9d834d1",
+        "android_client_info": {
+          "package_name": "com.example.contacts_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1078313432708-t35g44s9b6092eokcdv175tah9mtrc05.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSwFZxbPMT1W0Ut2v83saTyqI3FXafTO8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1078313432708-co636ebko3qvs52eklif7kphcjomuff2.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1078313432708-ej387h0d4242j9b9kpc22jigcf40hki3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.contactsApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
