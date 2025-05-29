@@ -4,13 +4,22 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import '../models/contact_model.dart';
 import 'firebase_service.dart';
+import 'package:collection/collection.dart'; // For firstWhereOrNull
 
 class ContactController {
   final FirebaseService _firebaseService = FirebaseService();
   final FavoriteController _favoriteController = FavoriteController();
 
-  /// Fetch all device contacts
-  Future<List<ContactModel>> getDeviceContacts() async {
+  // Cache for device contacts to avoid multiple fetches
+  List<ContactModel>? _deviceContactsCache;
+
+  /// Fetch all device contacts, using cache if available
+  Future<List<ContactModel>> getDeviceContacts({bool forceRefresh = false}) async {
+    if (!forceRefresh && _deviceContactsCache != null) {
+      debugPrint("Returning cached device contacts.");
+      return _deviceContactsCache!;
+    }
+
     debugPrint("Requesting contacts permission...");
     if (!await FlutterContacts.requestPermission()) {
       debugPrint("Contacts permission denied by user.");
@@ -18,26 +27,26 @@ class ContactController {
     }
     debugPrint("Contacts permission granted. Fetching contacts...");
     try {
-      // Fetch contacts with properties but without photo initially for performance
+      // Fetch contacts with properties
       final raw = await FlutterContacts.getContacts(
         withProperties: true,
-        // withPhoto: false, // Fetch photo only if needed later or handle potential errors
-        // withThumbnail: true, // Fetch thumbnail instead of full photo?
+        withPhoto: false, // Fetch photo only if needed later
       );
       debugPrint("Fetched ${raw.length} raw contacts from device.");
-      // Convert to ContactModel, handling potential errors during conversion
+
       final List<ContactModel> models = [];
       for (final c in raw) {
         try {
+          // Convert to ContactModel (includes hash calculation)
           models.add(ContactModel.fromEntity(c));
         } catch (e) {
           debugPrint("Error converting contact ${c.id} (${c.displayName}): $e");
-          // Optionally skip this contact or handle the error
         }
       }
       debugPrint(
         "Successfully converted ${models.length} contacts to ContactModel.",
       );
+      _deviceContactsCache = models; // Update cache
       return models;
     } catch (e) {
       debugPrint("Error fetching device contacts: $e");
@@ -45,24 +54,7 @@ class ContactController {
     }
   }
 
-  /// Backup (save or update) selected contacts to Firebase
-  /// Assumes the input list `contacts` is already the *differential* list (e.g., new/updated)
-  Future<void> backupSelected(List<ContactModel> contacts) async {
-    if (contacts.isEmpty) {
-      debugPrint("No contacts selected for backup.");
-      return;
-    }
-    debugPrint("Attempting to backup ${contacts.length} selected contacts...");
-    try {
-      await _firebaseService.saveContacts(contacts);
-      debugPrint("Successfully backed up ${contacts.length} contacts.");
-    } catch (e) {
-      debugPrint("Error during backupSelected: $e");
-      rethrow; // Rethrow to be caught by UI
-    }
-  }
-
-  /// Fetch contacts from Firebase backup
+  /// Fetch all contacts from Firebase backup
   Future<List<ContactModel>> getBackupContacts() async {
     debugPrint("Fetching contacts from Firebase backup...");
     try {
@@ -70,6 +62,10 @@ class ContactController {
       debugPrint(
         "Successfully fetched ${contacts.length} contacts from backup.",
       );
+      // Ensure hash is calculated if missing from older backups (optional)
+      // for (var contact in contacts) {
+      //   contact.hashCodeForSync ??= contact.calculateSyncHash();
+      // }
       return contacts;
     } catch (e) {
       debugPrint("Error fetching backup contacts: $e");
@@ -77,10 +73,29 @@ class ContactController {
     }
   }
 
-  /// Restore only selected contacts (used by the selective UI)
-  /// Assumes the input list `contacts` is already the *differential* list (e.g., not on device)
-  Future<void> restoreSelected(List<ContactModel> contacts) async {
-    if (contacts.isEmpty) {
+  /// Backup (save or update) selected contacts to Firebase
+  /// The UI layer should provide the list of contacts marked as Nouveau or Modifie
+  Future<void> backupSelected(List<ContactModel> contactsToBackup) async {
+    if (contactsToBackup.isEmpty) {
+      debugPrint("No contacts selected for backup.");
+      return;
+    }
+    debugPrint("Attempting to backup ${contactsToBackup.length} selected contacts...");
+    try {
+      // The Firebase service should handle add/update based on ID
+      await _firebaseService.saveContacts(contactsToBackup);
+      debugPrint("Successfully backed up ${contactsToBackup.length} contacts.");
+      // Invalidate cache after backup
+      _deviceContactsCache = null;
+    } catch (e) {
+      debugPrint("Error during backupSelected: $e");
+      rethrow; // Rethrow to be caught by UI
+    }
+  }
+
+  /// Restore selected contacts (those marked as Manquant) to the device
+  Future<void> restoreSelected(List<ContactModel> contactsToRestore) async {
+    if (contactsToRestore.isEmpty) {
       debugPrint("No contacts selected for restore.");
       return;
     }
@@ -90,29 +105,25 @@ class ContactController {
       throw Exception('Contacts permission denied');
     }
     debugPrint(
-      "Contacts permission granted. Attempting to restore ${contacts.length} selected contacts...",
+      "Contacts permission granted. Attempting to restore ${contactsToRestore.length} selected contacts...",
     );
 
     int successCount = 0;
     int failCount = 0;
 
-    for (final c in contacts) {
+    for (final c in contactsToRestore) {
       try {
         final newContact = Contact();
         newContact.name.first = c.firstName;
         newContact.name.last = c.lastName;
-        // Ensure phones and emails are not null before mapping
-        newContact.phones = (c.phones ?? []).map((p) => Phone(p)).toList();
-        newContact.emails = (c.emails ?? []).map((e) => Email(e)).toList();
+        newContact.phones = (c.phones).map((p) => Phone(p)).toList();
+        newContact.emails = (c.emails).map((e) => Email(e)).toList();
 
-        // Handle photo - requires careful error handling and base64 decoding
+        // Photo handling (optional, consider performance and errors)
         // if (c.photo != null) {
         //   try {
         //     newContact.photo = base64Decode(c.photo!);
-        //   } catch (e) {
-        //     debugPrint("Error decoding photo for contact ${c.id}: $e");
-        //     // Decide how to handle: skip photo, log, etc.
-        //   }
+        //   } catch (e) { debugPrint("Error decoding photo for contact ${c.id}: $e"); }
         // }
 
         await newContact.insert();
@@ -125,19 +136,48 @@ class ContactController {
         debugPrint(
           "Error inserting contact ${c.id} (${c.firstName} ${c.lastName}): $e",
         );
-        // Decide if you want to stop on first error or continue
         continue; // Continue with the next contact
       }
     }
     debugPrint(
       "Restore attempt finished. Success: $successCount, Failed: $failCount",
     );
+    // Invalidate cache after restore
+    _deviceContactsCache = null;
     if (failCount > 0) {
       // Optionally throw an error to indicate partial success
       // throw Exception('$failCount contacts failed to restore.');
     }
   }
 
+  /// Get contact display name from phone number
+  /// Uses the cached device contacts for efficiency
+  Future<String?> getContactNameFromNumber(String number) async {
+    // Ensure cache is populated
+    final contacts = await getDeviceContacts();
+    if (contacts.isEmpty) return null;
+
+    // Normalize the number for comparison (basic example)
+    final normalizedNumber = number.replaceAll(RegExp(r'\s+|-|\(|\)'), '');
+
+    final matchingContact = contacts.firstWhereOrNull((contact) {
+      return contact.phones.any((phone) {
+        final normalizedPhone = phone.replaceAll(RegExp(r'\s+|-|\(|\)'), '');
+        // Simple suffix check, might need more robust comparison
+        return normalizedPhone.endsWith(normalizedNumber) || normalizedNumber.endsWith(normalizedPhone);
+      });
+    });
+
+    if (matchingContact != null) {
+      final name = '${matchingContact.firstName} ${matchingContact.lastName}'.trim();
+      return name.isNotEmpty ? name : null; // Return null if name is empty
+    }
+
+    return null; // No matching contact found
+  }
+
+
+  // --- Favorite methods remain unchanged for now ---
   Future<void> addOrUpdateFavorite(FavoriteModel fav) async {
     final existing =
         (await _favoriteController.getFavorites(
@@ -156,3 +196,4 @@ class ContactController {
     return await _favoriteController.getFavorites(manuelle: true);
   }
 }
+

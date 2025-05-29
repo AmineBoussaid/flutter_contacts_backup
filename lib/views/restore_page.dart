@@ -12,114 +12,173 @@ class RestorePage extends StatefulWidget {
 
 class _RestorePageState extends State<RestorePage> {
   final ContactController _controller = ContactController();
-  List<ContactModel> _contactsToDisplay = []; // Holds the differential list
-  final Set<String> _selected = {};
-  bool _isAllSelected = false;
+  List<ContactModel> _allBackupContacts =
+      []; // Holds all contacts from backup with status
+  List<ContactModel> _filteredContacts =
+      []; // Holds contacts displayed after search
+  final Map<String, ContactModel> _deviceContactsMap =
+      {}; // Holds device contacts for quick lookup
+  final Set<String> _selected =
+      {}; // Holds IDs of selected contacts (only 'Manquant')
+  bool _isAllSelectableSelected = false;
   bool _loading = true;
   String? _error;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _loadDifferentialBackup();
+    _loadAndCompareContacts();
+    _searchController.addListener(_filterContacts);
   }
 
-  Future<void> _loadDifferentialBackup() async {
+  @override
+  void dispose() {
+    _searchController.removeListener(_filterContacts);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAndCompareContacts() async {
     try {
       setState(() {
         _loading = true;
         _error = null;
         _selected.clear();
-        _isAllSelected = false;
+        _isAllSelectableSelected = false;
       });
 
       // 1. Fetch backup contacts from Firebase
-      // Assuming getBackupContacts handles List/Map correctly now
       final backupContacts = await _controller.getBackupContacts();
       if (!mounted) return;
       debugPrint(
         "Fetched ${backupContacts.length} contacts from Firebase backup.",
       );
 
-      // 2. Fetch device contacts
-      // Assuming getDeviceContacts exists and works
-      List<ContactModel> deviceContacts = [];
-      try {
-        deviceContacts = await _controller.getDeviceContacts();
-        if (!mounted) return;
-        debugPrint("Fetched ${deviceContacts.length} contacts from device.");
-      } catch (e) {
-        debugPrint("Error fetching device contacts for diff: $e");
-        setState(() {
-          _loading = false;
-          _error =
-              'Failed to load device contacts for comparison: ${e.toString()}';
-          _contactsToDisplay = [];
-        });
-        return;
+      // 2. Fetch device contacts (use cache if possible)
+      final deviceContacts = await _controller.getDeviceContacts();
+      if (!mounted) return;
+      debugPrint("Fetched ${deviceContacts.length} contacts from device.");
+
+      // Create a map for quick lookup of device contacts by ID
+      _deviceContactsMap.clear();
+      for (var contact in deviceContacts) {
+        _deviceContactsMap[contact.id] = contact;
       }
 
-      // 3. Perform differential logic: Find backup contacts not present on device
-      // Using contact ID as the unique identifier.
-      final deviceContactIds = deviceContacts.map((c) => c.id).toSet();
-      final diffContacts =
-          backupContacts
-              .where((c) => !deviceContactIds.contains(c.id))
-              .toList();
+      // 3. Compare and determine status for each backup contact
+      for (var backupContact in backupContacts) {
+        if (_deviceContactsMap.containsKey(backupContact.id)) {
+          backupContact.restoreStatus = RestoreStatus.present;
+        } else {
+          backupContact.restoreStatus = RestoreStatus.manquant;
+        }
+      }
 
-      debugPrint(
-        "Differential contacts to restore (not on device): ${diffContacts.length}",
-      );
-
-      // Sort the differential list alphabetically by name for consistent order
-      diffContacts.sort((a, b) {
-        final nameA = '${a.firstName} ${a.lastName}'.trim();
-        final nameB = '${b.firstName} ${b.lastName}'.trim();
-        return nameA.toLowerCase().compareTo(nameB.toLowerCase());
+      // Sort contacts alphabetically by name
+      backupContacts.sort((a, b) {
+        final nameA = '${a.firstName} ${a.lastName}'.trim().toLowerCase();
+        final nameB = '${b.firstName} ${b.lastName}'.trim().toLowerCase();
+        return nameA.compareTo(nameB);
       });
 
       setState(() {
-        _contactsToDisplay = diffContacts; // Store differential list
+        _allBackupContacts = backupContacts;
+        _filteredContacts = backupContacts; // Initially show all
         _loading = false;
         _error = null;
-        _isAllSelected =
-            _contactsToDisplay.isNotEmpty &&
-            _selected.length == _contactsToDisplay.length;
+        _updateSelectAllState();
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Failed to load and compare contact backups: ${e.toString()}';
-        _contactsToDisplay = [];
+        _error = 'Failed to load and compare contacts: ${e.toString()}';
+        _allBackupContacts = [];
+        _filteredContacts = [];
       });
+      debugPrint("Error in _loadAndCompareContacts (Restore): $e");
+    }
+  }
+
+  void _filterContacts() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredContacts = _allBackupContacts;
+      } else {
+        _filteredContacts =
+            _allBackupContacts.where((contact) {
+              final name =
+                  '${contact.firstName} ${contact.lastName}'.toLowerCase();
+              final phones = contact.phones.join(' ').toLowerCase();
+              final emails = contact.emails.join(' ').toLowerCase();
+              return name.contains(query) ||
+                  phones.contains(query) ||
+                  emails.contains(query);
+            }).toList();
+      }
+      _updateSelectAllState();
+    });
+  }
+
+  void _updateSelectAllState() {
+    final selectableContacts =
+        _filteredContacts
+            .where((c) => c.restoreStatus == RestoreStatus.manquant)
+            .toList();
+    if (selectableContacts.isEmpty) {
+      _isAllSelectableSelected = false;
+    } else {
+      _isAllSelectableSelected = selectableContacts.every(
+        (c) => _selected.contains(c.id),
+      );
     }
   }
 
   void _toggleSelectAll(bool? value) {
     setState(() {
-      _isAllSelected = value ?? false;
-      _selected.clear();
-      if (_isAllSelected) {
-        for (var contact in _contactsToDisplay) {
+      _isAllSelectableSelected = value ?? false;
+      final selectableContacts = _filteredContacts.where(
+        (c) => c.restoreStatus == RestoreStatus.manquant,
+      );
+
+      if (_isAllSelectableSelected) {
+        for (var contact in selectableContacts) {
           _selected.add(contact.id);
+        }
+      } else {
+        for (var contact in selectableContacts) {
+          _selected.remove(contact.id);
         }
       }
     });
   }
 
   void _onRestore() async {
-    final toInsert =
-        _contactsToDisplay.where((c) => _selected.contains(c.id)).toList();
+    final selectedContacts =
+        _allBackupContacts // Use full list to find by ID
+            .where((c) => _selected.contains(c.id))
+            .toList();
 
-    if (toInsert.isEmpty) {
+    // Filter again to ensure only 'Manquant' are restored
+    final contactsToRestore =
+        selectedContacts
+            .where((c) => c.restoreStatus == RestoreStatus.manquant)
+            .toList();
+
+    if (contactsToRestore.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select contacts to restore')),
+        const SnackBar(
+          content: Text(
+            'Please select contacts missing from device to restore',
+          ),
+        ),
       );
       return;
     }
 
-    // Show progress/confirmation dialog
+    // Show progress dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -131,26 +190,25 @@ class _RestorePageState extends State<RestorePage> {
               children: [
                 const CircularProgressIndicator(),
                 const SizedBox(height: 16),
-                Text('Restoring ${toInsert.length} contacts...'),
+                Text('Restoring ${contactsToRestore.length} contacts...'),
               ],
             ),
           ),
     );
 
     try {
-      // Assuming restoreSelected adds contacts to the device
-      await _controller.restoreSelected(toInsert);
+      await _controller.restoreSelected(contactsToRestore);
       if (mounted) {
         Navigator.pop(context); // Close dialog
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Successfully restored ${toInsert.length} contacts'),
+            content: Text(
+              'Successfully restored ${contactsToRestore.length} contacts',
+            ),
           ),
         );
-        // Reload the differential list after restore
-        _loadDifferentialBackup();
-        // setState(() => _selected.clear()); // Already cleared in _loadDifferentialBackup
-        // _isAllSelected = false;
+        // Reload contacts after restore to update status
+        _loadAndCompareContacts();
       }
     } catch (e) {
       if (mounted) {
@@ -159,24 +217,59 @@ class _RestorePageState extends State<RestorePage> {
           SnackBar(content: Text('Restore failed: ${e.toString()}')),
         );
       }
+      debugPrint("Error during _onRestore: $e");
     }
+  }
+
+  Widget _buildStatusIndicator(RestoreStatus status) {
+    IconData icon;
+    Color color;
+    String text;
+    switch (status) {
+      case RestoreStatus.manquant:
+        icon = Icons.file_download_outlined;
+        color = Colors.blue;
+        text = 'Missing'; // Missing on device
+        break;
+      case RestoreStatus.present:
+        icon = Icons.check_circle_outline;
+        color = Colors.green;
+        text = 'On Device';
+        break;
+      default:
+        icon = Icons.help_outline;
+        color = Colors.grey;
+        text = 'Unknown';
+    }
+    return Chip(
+      avatar: Icon(icon, color: color, size: 16),
+      label: Text(text, style: TextStyle(fontSize: 10)),
+      padding: EdgeInsets.zero,
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      backgroundColor: color.withOpacity(0.1),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool canSelectAny = _filteredContacts.any(
+      (c) => c.restoreStatus == RestoreStatus.manquant,
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Restore Contacts'),
         actions: [
-          if (!_loading && _contactsToDisplay.isNotEmpty)
+          if (!_loading && _allBackupContacts.isNotEmpty && canSelectAny)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 0),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text("All", style: Theme.of(context).textTheme.bodyMedium),
+                  Text("All", style: Theme.of(context).textTheme.bodySmall),
                   Checkbox(
-                    value: _isAllSelected,
+                    value: _isAllSelectableSelected,
                     onChanged: _toggleSelectAll,
                     visualDensity: VisualDensity.compact,
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -186,14 +279,37 @@ class _RestorePageState extends State<RestorePage> {
             ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadDifferentialBackup,
+            tooltip: 'Refresh Contacts',
+            onPressed: _loadAndCompareContacts,
           ),
         ],
       ),
-      body: _buildBody(),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: 'Search Backup Contacts',
+                hintText: 'Search by name, phone, email...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 10,
+                ),
+              ),
+            ),
+          ),
+          Expanded(child: _buildBody()),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _selected.isEmpty ? null : _onRestore,
-        label: const Text('Restore Selected'),
+        label: Text('Restore (${_selected.length})'),
         icon: const Icon(Icons.restore),
         backgroundColor:
             _selected.isEmpty
@@ -215,15 +331,18 @@ class _RestorePageState extends State<RestorePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const SizedBox(height: 16),
               Text(
                 _error!,
                 style: const TextStyle(color: Colors.red),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadDifferentialBackup,
-                child: const Text('Retry'),
+              ElevatedButton.icon(
+                onPressed: _loadAndCompareContacts,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
               ),
             ],
           ),
@@ -231,38 +350,55 @@ class _RestorePageState extends State<RestorePage> {
       );
     }
 
-    if (_contactsToDisplay.isEmpty) {
-      return const Center(
-        child: Text('No new contacts found in backup to restore'),
+    if (_allBackupContacts.isEmpty) {
+      return const Center(child: Text('No contacts found in backup.'));
+    }
+
+    if (_filteredContacts.isEmpty && _searchController.text.isNotEmpty) {
+      return Center(
+        child: Text(
+          'No backup contacts found matching "${_searchController.text}"',
+        ),
       );
     }
 
     return ListView.builder(
-      itemCount: _contactsToDisplay.length,
+      itemCount: _filteredContacts.length,
       itemBuilder: (_, i) {
-        final c = _contactsToDisplay[i];
+        final c = _filteredContacts[i];
+        final isSelectable = c.restoreStatus == RestoreStatus.manquant;
         final displayName =
             ('${c.firstName} ${c.lastName}'.trim().isEmpty)
                 ? '(No Name)'
                 : '${c.firstName} ${c.lastName}'.trim();
         final displayPhones =
             c.phones.isNotEmpty ? c.phones.join(', ') : '(No Phones)';
+
         return CheckboxListTile(
+          secondary: _buildStatusIndicator(c.restoreStatus),
           title: Text(displayName),
-          subtitle: Text(displayPhones),
+          subtitle: Text(
+            displayPhones,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           value: _selected.contains(c.id),
-          onChanged: (v) {
-            setState(() {
-              if (v == true) {
-                _selected.add(c.id);
-              } else {
-                _selected.remove(c.id);
-              }
-              _isAllSelected =
-                  _contactsToDisplay.isNotEmpty &&
-                  _selected.length == _contactsToDisplay.length;
-            });
-          },
+          onChanged:
+              isSelectable
+                  ? (v) {
+                    setState(() {
+                      if (v == true) {
+                        _selected.add(c.id);
+                      } else {
+                        _selected.remove(c.id);
+                      }
+                      _updateSelectAllState();
+                    });
+                  }
+                  : null, // Disable checkbox if contact is present on device
+          controlAffinity: ListTileControlAffinity.leading,
+          activeColor: Theme.of(context).primaryColor,
+          tileColor: isSelectable ? null : Colors.grey.withOpacity(0.1),
         );
       },
     );
