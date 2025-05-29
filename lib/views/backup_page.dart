@@ -13,7 +13,7 @@ class BackupPage extends StatefulWidget {
 
 class _BackupPageState extends State<BackupPage> {
   final ContactController _controller = ContactController();
-  List<ContactModel> _allDeviceContacts = []; // Holds all contacts from device
+  List<ContactModel> _allDeviceContacts = [];
   List<ContactModel> _filteredContacts =
       []; // Holds contacts displayed after search
   final Map<String, ContactModel> _backupContactsMap =
@@ -125,7 +125,7 @@ class _BackupPageState extends State<BackupPage> {
                   emails.contains(query);
             }).toList();
       }
-      _updateSelectAllState(); // Recalculate select all based on filtered list
+      _updateSelectAllState(); 
     });
   }
 

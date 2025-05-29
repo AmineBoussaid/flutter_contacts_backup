@@ -50,13 +50,12 @@ class SmsModel {
     );
 
     return SmsModel(
-      id:      map['id']      as String? ?? DateTime.now().millisecondsSinceEpoch.toString(), // Handle potential null ID from older backups
+      id:      map['id']      as String? ?? DateTime.now().millisecondsSinceEpoch.toString(),
       address: map['address'] as String? ?? '',
       body:    map['body']    as String? ?? '',
       date:    map['date']    as int? ?? 0,
       type:    smsType,
-      // Status is determined later during comparison
-      // contactName is resolved dynamically, not stored in Firebase
+     
     );
   }
 
@@ -66,7 +65,6 @@ class SmsModel {
     'body':    body,
     'date':    date,
     'type':    type.index,
-    // Status fields (backupStatus, restoreStatus) and contactName are transient and not stored
   };
 }
 

@@ -8,7 +8,6 @@ class FirebaseService {
   final DatabaseReference _db = FirebaseDatabase.instance.ref();
   String _sanitizeEmail(String email) => email.replaceAll('.', ',');
 
-  // ==================== CONTACTS ====================
   DatabaseReference _userRef() {
     final user = FirebaseAuth.instance.currentUser!;
     final sanitized = _sanitizeEmail(user.email!);
